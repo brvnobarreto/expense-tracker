@@ -17,11 +17,23 @@ export async function GET() {
 export async function POST(req: Request) {
     const body = await req.json();
     await db.insert(schema.expenses).values(body);
-    return NextResponse.json({message: "Despesa adicionada"});
+    return NextResponse.json({ message: "Despesa adicionada" });
 }
 
-export async function DELETE(req: Request){
+export async function PUT(req: Request) {
+    const body = await req.json();
+    const { id, name, amount } = body;
+
+    // Atualiza a despesa com o ID fornecido
+    await db.update(schema.expenses)
+        .set({ name, amount })
+        .where(eq(schema.expenses.id, id));
+
+    return NextResponse.json({ message: "Despesa atualizada" });
+}
+
+export async function DELETE(req: Request) {
     const { id } = await req.json();
     await db.delete(schema.expenses).where(eq(schema.expenses.id, id));
-    return NextResponse.json({message: "Despesa removida"});
+    return NextResponse.json({ message: "Despesa removida" });
 }
