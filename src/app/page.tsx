@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogTrigger, DialogContent, DialogTitle } from "@/components/ui/dialog"; // Adicionei o DialogTitle
 import { Input } from "@/components/ui/input";
 
 type Expense = {
@@ -68,6 +68,7 @@ export default function Home(){
           <Button className="mt-4">Adicionar Despesa</Button>
         </DialogTrigger>
         <DialogContent>
+          <DialogTitle>Adicionar Despesa</DialogTitle> {/* Título do Modal */}
           <Input placeholder="Nome" value={newExpense.name} onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })} />
           <Input type="number" placeholder="Valor" value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: parseFloat(e.target.value) || 0 })} />
           <Button onClick={addExpense}>Salvar</Button>
