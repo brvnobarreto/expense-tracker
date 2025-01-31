@@ -12,16 +12,16 @@ export const db = drizzle(sql, { schema });
 
 export async function GET() {
     const allExpenses = await db.select().from(schema.expenses);
-    console.log("Despesas do banco:", allExpenses);
+    //console.log("Despesas do banco:", allExpenses);
     return NextResponse.json(allExpenses);    
 }
 
 export async function POST(req: Request) {
     const body = await req.json();
-    console.log("Request Body:", body); // Log do corpo da requisição
+    //console.log("Request Body:", body); // Log do corpo da requisição
     
     let amount = parseFloat(body.amount);
-    console.log("Parsed Amount:", amount); // Log para verificar o valor recebido
+    //console.log("Parsed Amount:", amount); // Log para verificar o valor recebido
     
     if (isNaN(amount)) {
         return NextResponse.json({ error: 'Valor de despesa inválido.' }, { status: 400 });
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     
     // Garantir que o valor tenha 2 casas decimais
     amount = parseFloat(amount.toFixed(2));
-    console.log("Formatted Amount:", amount); // Log para verificar o valor formatado
+    //console.log("Formatted Amount:", amount); // Log para verificar o valor formatado
     
     // Remover o campo 'id' antes de inserir no banco de dados
     const { id, ...expenseData } = body;
