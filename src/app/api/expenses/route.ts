@@ -5,12 +5,14 @@ import { neon } from "@neondatabase/serverless";
 import * as schema from "../../../db/schema";
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
+import { date } from "drizzle-orm/pg-core";
 
 const sql = neon(process.env.DATABASE_URL!);
 export const db = drizzle(sql, { schema });
 
 export async function GET() {
     const allExpenses = await db.select().from(schema.expenses);
+    console.log("Despesas do banco:", allExpenses);
     return NextResponse.json(allExpenses);    
 }
 
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
     const { id, ...expenseData } = body;
 
     try {
-        await db.insert(schema.expenses).values({ ...expenseData, amount });
+        await db.insert(schema.expenses).values({ ...expenseData, amount, date: body.date ?? undefined, });
         return NextResponse.json({ message: "Despesa adicionada" });
     } catch (error) {
         console.error("Error inserting expense:", error); // Log de erro
@@ -43,11 +45,11 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
     const body = await req.json();
-    const { id, name, amount } = body;
+    const { id, name, amount, date } = body;
 
     // Atualiza a despesa com o ID fornecido
     await db.update(schema.expenses)
-        .set({ name, amount })
+        .set({ name, amount, date })
         .where(eq(schema.expenses.id, id));
 
     return NextResponse.json({ message: "Despesa atualizada" });

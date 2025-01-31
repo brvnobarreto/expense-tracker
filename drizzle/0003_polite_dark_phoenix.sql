@@ -1,0 +1,1 @@
+ALTER TABLE "expenses" ADD COLUMN "date" timestamp with time zone DEFAULT now() NOT NULL;
