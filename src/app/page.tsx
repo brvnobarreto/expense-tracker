@@ -66,7 +66,6 @@
       }
     };
     
-
     const updateExpense = async () => {
       try {
         await axios.put('/api/expenses', newExpense);
@@ -108,11 +107,11 @@
     return (
       <div className="p-6 max-w-xl mx-auto">
 
-        <header className="bg-teal-500 text-white p-4 rounded-lg shadow-md text-center">
+        <header className="bg-teal-500 text-white p-4 shadow-md text-center fixed top-0 right-0 left-0">
           <h1 className="text-2xl font-bold">Controle de Gastos</h1>
         </header>
 
-        <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md">
+        <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md mt-14">
           <div>
             <p>Saldo:</p>
             <span className={balance < 0 ? "text-red-500 font-bold" : "font-bold"}>
@@ -132,14 +131,14 @@
         ) : (
           <>
             {/* Tabela de despesas */}
-            <div className="mt-4 bg-white shadow-md rounded-lg">
-              <table className="w-full border-collapse">
+            <div className="mt-4 bg-white shadow-md rounded-lg overflow-x-auto">
+              <table className="w-full min-w-max border-collapse">
                 <thead className="bg-teal-500 text-white">
                   <tr>
                     <th className="p-2 text-left">Nome</th>
                     <th className="p-2 text-center">Quantia</th>
                     <th className="p-2 text-center">Data</th>
-                    <th className="p-2 text-center">Ações</th>
+                    <th className="pr-4 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -197,7 +196,7 @@
                 setNewExpense({ ...newExpense, amount: isNaN(value) ? 0 : value });
               }}
             />
-            
+
             <Input
               type="date"
               value={newExpense.date || ''}
