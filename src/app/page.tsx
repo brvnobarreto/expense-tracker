@@ -3,250 +3,367 @@
 import { useEffect, useState } from "react";
 import axios from 'axios';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogTrigger, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Pencil } from "lucide-react";
+import { Pencil, Loader2 } from "lucide-react";
+import { format, parseISO, startOfDay, isValid } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
 
 type Expense = {
-  id?: number;
-  name: string;
-  amount: number;
-  date?: string;
+    id?: number;
+    name: string;
+    amount: number;
+    date: string | null;
 };
 
 export default function Home() {
+
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [balance, setBalance] = useState<number>(1000);
-  const [totalCost, setTotalCost] = useState<number>(0);
-  const [newExpense, setNewExpense] = useState<Expense>({ id: 0, name: '', amount: 0, date: '' });
+  const [balance, setBalance] = useState<number>(0);
+  const [newExpense, setNewExpense] = useState<Expense>({ name: '', amount: 0, date: null });
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(true); // Estado de carregamento
+  const [loading, setLoading] = useState<boolean>(true);
   const [modalBalanceOpen, setModalBalanceOpen] = useState<boolean>(false);
-  const [newBalance, setNewBalance] = useState<number>(balance);
+  const [totalCost, setTotalCost] = useState<number>(0);
+  const [initialBalanceLoaded, setInitialBalanceLoaded] = useState(false);
+  const [inputBalance, setInputBalance] = useState<number>(0);
+  const [isSavingBalance, setIsSavingBalance] = useState<boolean>(false);
+  const [isSavingExpense, setIsSavingExpense] = useState<boolean>(false);
+  const [initialBalance, setInitialBalance] = useState<number>(0);
 
   useEffect(() => {
-    fetchExpenses();
+      fetchData();
   }, []);
 
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+        const [expensesRes, balanceRes] = await Promise.all([
+            axios.get('/api/expenses'),
+            axios.get('/api/balance')
+        ]);
+
+        const formattedExpenses = expensesRes.data.map((expense: Expense) => ({
+            ...expense,
+            amount: Number(expense.amount),
+            date: expense.date ? new Date(expense.date).toISOString() : null
+        }));
+
+        const balanceAmount = Number(balanceRes.data.amount);
+
+        setExpenses(formattedExpenses);
+        setBalance(balanceAmount);
+        setInitialBalance(balanceAmount);
+        setInputBalance(balanceAmount);
+        setInitialBalanceLoaded(true);
+    } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+    } finally {
+        setLoading(false);
+    }
+};
+
   useEffect(() => {
-    setBalance(1000 - totalCost);
-  }, [totalCost]); // Atualiza o valor sempre que o saldo é alterado.
+      // Calcula o custo total
+      const newTotalCost = expenses.reduce((acc, expense) => acc + Number(expense.amount), 0);
+      setTotalCost(newTotalCost);
+
+      // Calcula o saldo
+      if (initialBalanceLoaded) {
+        setBalance(initialBalance - newTotalCost);
+    }
+
+  }, [expenses, initialBalance]);
 
   const fetchExpenses = async () => {
     setLoading(true);
     try {
       const res = await axios.get('/api/expenses');
-      setExpenses(res.data);
-      calculateBalance(res.data);
+      const formattedExpenses = res.data.map((expense: Expense) => ({
+        ...expense,
+        amount: Number(expense.amount),
+        // Mantém a data no formato YYYY-MM-DD sem conversão para ISO
+        date: expense.date
+      }));
+      setExpenses(formattedExpenses);
     } catch (error) {
       console.error("Erro ao buscar despesas:", error);
     }
     setLoading(false);
   };
 
-  const calculateBalance = (expenses: Expense[]) => {
-    const total = expenses.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-    setTotalCost(total);
-    setBalance(1000.00 - total);
+  const fetchBalance = async () => {
+      try {
+          const res = await axios.get('/api/balance');
+          const balanceAmount = Number(res.data.amount);
+          setBalance(balanceAmount);
+          setInitialBalance(balanceAmount);
+          setInputBalance(balanceAmount);
+          setInitialBalanceLoaded(true);
+      } catch (error) {
+          console.error("Erro ao buscar saldo:", error);
+      }
   };
 
   const addExpense = async () => {
-    console.log("Enviando dados:", newExpense);
-  
-    const { id, ...expenseData } = newExpense;
-  
-    // Se nenhuma data for fornecida, usa a data de hoje
-    if (!expenseData.date) {
-      const today = new Date();
-      expenseData.date = today.toISOString().split("T")[0]; // Formato "yyyy-MM-dd"
-    }
-  
+    setIsSavingExpense(true);
     try {
-      const response = await axios.post('/api/expenses', expenseData);
-      console.log("Resposta:", response);
-      setExpenses((prev) => [...prev, response.data]); // Adiciona diretamente à lista
-      setNewExpense({ id: 0, name: '', amount: 0, date: '' });
+      const { id, ...expenseData } = newExpense;
+  
+      // Garante que a data seja tratada como horário local
+      const date = newExpense.date ? new Date(newExpense.date + 'T00:00:00') : new Date();
+  
+      const amount = Number(newExpense.amount);
+  
+      // Envia a data no formato YYYY-MM-DD (sem timezone)
+      await axios.post('/api/expenses', {
+        ...expenseData,
+        date: format(date, 'yyyy-MM-dd'),
+        amount
+      });
+  
+      // Busca as despesas atualizadas do servidor
+      await fetchExpenses();
+  
+      // Reseta o formulário
+      setNewExpense({ name: '', amount: 0, date: null });
       setModalOpen(false);
     } catch (error) {
       console.error("Erro ao adicionar despesa:", error);
+    } finally {
+      setIsSavingExpense(false);
     }
   };
-  
+
   const updateExpense = async () => {
+    setIsSavingExpense(true);
     try {
-      await axios.put('/api/expenses', newExpense);
-      
-      setExpenses((prevExpenses) => {
-        const updatedList = prevExpenses.map((expense) =>
-          expense.id === newExpense.id ? { ...newExpense } : expense
-        );
+      const { id, ...expenseData } = newExpense;
   
-        return updatedList.sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+      // Garante que a data seja tratada como horário local
+      const date = newExpense.date ? new Date(newExpense.date + 'T00:00:00') : new Date();
+  
+      const amount = Number(newExpense.amount);
+  
+      // Envia a data no formato YYYY-MM-DD (sem timezone)
+      await axios.put('/api/expenses', {
+        ...expenseData,
+        date: format(date, 'yyyy-MM-dd'),
+        amount,
+        id
       });
   
-      setNewExpense({ id: 0, name: '', amount: 0, date: '' });
+      // Busca as despesas atualizadas do servidor
+      await fetchExpenses();
+  
+      // Reseta o formulário e fecha o modal
+      setNewExpense({ name: '', amount: 0, date: null });
       setModalOpen(false);
       setIsEditing(false);
     } catch (error) {
       console.error("Erro ao atualizar despesa:", error);
+    } finally {
+      setIsSavingExpense(false);
     }
   };
-
   const deleteExpense = async (id: number) => {
-    await axios.delete('/api/expenses', { data: { id } });
-    fetchExpenses();
+      try {
+          await axios.delete('/api/expenses', { data: { id } });
+          setExpenses((prev) => prev.filter(expense => expense.id !== id));
+      } catch (error) {
+          console.error("Erro ao remover despesa:", error);
+      }
   };
 
   const handleEditExpense = (expense: Expense) => {
-    const formattedDate = expense.date ? new Date(expense.date).toISOString().split("T")[0] : '';
-    setNewExpense({ ...expense, date: formattedDate });
-    setIsEditing(true);
-    setModalOpen(true);
-  };
+    try {
+        if (!expense.date) {
+            throw new Error('Data inválida');
+        }
 
+        // Verifica se a data já está no formato ISO antes de convertê-la
+        const rawDate = isValid(parseISO(expense.date)) ? parseISO(expense.date) : new Date(expense.date);
+        
+        if (!isValid(rawDate)) {
+            throw new Error('Data inválida');
+        }
+
+        // Formata corretamente para exibição no input date
+        const formattedDate = format(rawDate, 'yyyy-MM-dd');
+
+        setNewExpense({
+            ...expense,
+            date: formattedDate,
+            amount: Number(expense.amount)
+        });
+        setIsEditing(true);
+        setModalOpen(true);
+    } catch (error) {
+        console.error("Erro ao editar despesa:", error);
+    }
+};
+
+  
   const handleAddExpense = () => {
-    setNewExpense({ id: 0, name: '', amount: 0, date: '' });
-    setIsEditing(false);
-    setModalOpen(true);
+      setNewExpense({ name: '', amount: 0, date: null });
+      setIsEditing(false);
+      setModalOpen(true);
   };
 
   const handleEditBalance = () => {
-    setModalBalanceOpen(true); // Abre o modal de saldo
+      setModalBalanceOpen(true);
+      setInputBalance(balance);
   };
 
-  const updateBalance = () => {
-    const updateBalance = newBalance - totalCost;
-    
-    setBalance(updateBalance); // Atualiza o saldo
-    setModalBalanceOpen(false) // Fecha o modal
+  const updateBalance = async () => {
+      setIsSavingBalance(true);
+      try {
+          await axios.put('/api/balance', { amount: inputBalance });
+          setBalance(inputBalance);
+          setInitialBalance(inputBalance);
+          setModalBalanceOpen(false);
+      } catch (error) {
+          console.error("Erro ao atualizar saldo:", error);
+      } finally {
+          setIsSavingBalance(false);
+      }
+  };
+  
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Sem data';
+  
+    try {
+      // Extrai apenas a parte da data (ignorando a parte do tempo e fuso horário)
+      const [year, month, day] = dateString.split('T')[0].split('-').map(Number);
+  
+      // Cria um objeto Date no fuso horário local sem conversão de UTC
+      const date = new Date(year, month - 1, day);
+  
+      // Formata a data corretamente para 'dd/MM/yyyy'
+      return format(date, 'dd/MM/yyyy', { locale: ptBR });
+  
+    } catch (error) {
+      console.error('Erro ao formatar data:', error, dateString);
+      return 'Data inválida';
+    }
   };
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
+      <div className="p-6 max-w-xl mx-auto mt-11">
+          <header className="bg-teal-500 text-white p-4 shadow-md text-center fixed top-0 right-0 left-0">
+              <h1 className="text-2xl font-bold">Controle de Gastos</h1>
+          </header>
 
-      <header className="bg-teal-500 text-white p-4 shadow-md text-center fixed top-0 right-0 left-0">
-        <h1 className="text-2xl font-bold">Controle de Gastos</h1>
-      </header>
-
-      <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md mt-14">
-        <div>
-          <p>Saldo:</p>
-          <span className={balance < 0 ? "text-red-500 font-bold" : "font-bold"}>
-            R$ {balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-          </span>
-          {/* Botão com Ícone de Edição */}
-          <Button variant="ghost" size="icon" onClick={() => setModalBalanceOpen(true)}>
-            <Pencil className="w-5 h-5 text-gray-600 hover:text-gray-800" />
-          </Button>
-        </div>
-        <div>
-          <p>Custo total:</p>
-          <span className="font-bold">R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center items-center h-32">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent"></div>
-        </div>
-      ) : (
-        <>
-          {/* Tabela de despesas */}
-          <div className="mt-4 bg-white shadow-md rounded-lg overflow-x-auto">
-            <table className="w-full min-w-max border-collapse">
-              <thead className="bg-teal-500 text-white">
-                <tr>
-                  <th className="p-2 text-left">Nome</th>
-                  <th className="p-2 text-center">Quantia</th>
-                  <th className="p-2 text-center">Data</th>
-                  <th className="pr-4 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {expenses.map((expense, index) => (
-                  <tr key={expense.id ?? `temp-${index}`} className="border-b hover:bg-gray-100">
-                    <td className="p-2">{expense.name}</td>
-                    <td className="p-2 text-center">
-                      R$ {(Number(expense.amount) || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </td>
-                    <td className="p-2 text-center">
-                      {expense.date ? new Date(expense.date).toLocaleDateString("pt-BR") : "Sem data"}
-                    </td>
-                    <td className="p-2 text-right space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => handleEditExpense(expense)}>
-                        Editar
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => expense.id !== undefined && deleteExpense(expense.id)}>
-                        Remover
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md mt-14">
+              <div>
+                  <p>Saldo:</p>
+                  <span className={balance < 0 ? "text-red-500 font-bold" : "font-bold"}>
+                      {initialBalanceLoaded ? `R$ ${balance.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "Carregando..."}
+                  </span>
+                  <Button variant="ghost" size="icon" onClick={handleEditBalance}>
+                      <Pencil className="w-5 h-5 text-gray-600 hover:text-gray-800" />
+                  </Button>
+              </div>
+              <div>
+                  <p>Custo total:</p>
+                  <span className="font-bold">
+                      R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </span>
+              </div>
           </div>
-        </>
-      )}
 
-      {/* Botão flutuante para adicionar despesa */}
-      <div className="fixed bottom-6 right-6">
-        <Button className="rounded-full w-14 h-14 bg-teal-500 text-white shadow-lg hover:bg-teal-600" onClick={handleAddExpense}>
-          +
-        </Button>
+          <div className="fixed bottom-6 right-6">
+              <Button className="rounded-full w-14 h-14 bg-teal-500 text-white shadow-lg hover:bg-teal-600" onClick={handleAddExpense}>
+                  +
+              </Button>
+          </div>
+          <Dialog open={modalBalanceOpen} onOpenChange={setModalBalanceOpen}>
+              <DialogContent>
+                  <DialogTitle>Editar Saldo</DialogTitle>
+                  <DialogDescription>Insira o novo valor do saldo.</DialogDescription>
+                  <Input
+                      type="number"
+                      step="0.01"
+                      value={inputBalance}
+                      onChange={(e) => setInputBalance(parseFloat(e.target.value))}
+                  />
+                  <Button onClick={updateBalance} disabled={isSavingBalance}>
+                      {isSavingBalance ? <Loader2 className="animate-spin" /> : "Salvar"}
+                  </Button>
+              </DialogContent>
+          </Dialog>
+
+          <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+              <DialogContent>
+                  <DialogTitle>{isEditing ? "Editar Despesa" : "Adicionar Despesa"}</DialogTitle>
+                  <DialogDescription>Preencha os detalhes da despesa.</DialogDescription>
+                  <Input
+                      value={newExpense.name}
+                      onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
+                      placeholder="Nome da despesa"
+                  />
+                  <Input
+                      type="number"
+                      step="0.01"
+                      value={newExpense.amount || ''}
+                      onChange={(e) => setNewExpense({ ...newExpense, amount: parseFloat(e.target.value) })}
+                      placeholder="Valor"
+                  />
+                  <Input
+                    type="date"
+                    value={newExpense.date || ''}
+                    onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                  />
+                  <Button onClick={isEditing ? updateExpense : addExpense} disabled={isSavingExpense}>
+                      {isSavingExpense ? <Loader2 className="animate-spin" /> : "Salvar"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setModalOpen(false)}>
+                      Cancelar
+                  </Button>
+              </DialogContent>
+          </Dialog>
+
+          {loading ? (
+              <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-teal-500 border-t-transparent"></div>
+              </div>
+          ) : (
+              <div className="mt-4 bg-white shadow-md rounded-lg overflow-x-auto">
+                  <table className="w-full min-w-max border-collapse">
+                      <thead className="bg-teal-500 text-white">
+                          <tr>
+                              <th className="p-2 text-left">Nome</th>
+                              <th className="p-2 text-center">Quantia</th>
+                              <th className="p-2 text-center">Data</th>
+                              <th className="pr-4 text-right">Ações</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          {expenses.map((expense) => (
+                              <tr key={expense.id ?? crypto.randomUUID()} className="border-b hover:bg-gray-100">
+                                  <td className="p-2">{expense.name}</td>
+                                  <td className="p-2 text-center">
+                                      R$ {(expense.amount || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="p-2 text-center">
+                                      {formatDate(expense.date)}
+                                  </td>
+                                  <td className="p-2 text-right space-x-2">
+                                      <Button variant="outline" size="sm" onClick={() => handleEditExpense(expense)}>
+                                          Editar
+                                      </Button>
+                                      <Button variant="destructive" size="sm" onClick={() => deleteExpense(expense.id ?? 0)}>
+                                          Remover
+                                      </Button>
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          )}
       </div>
-      
-      {/* Modal para editar/add saldo */}
-      <Dialog open={modalBalanceOpen} onOpenChange={setModalBalanceOpen}>
-        <DialogContent>
-          <DialogTitle>Editar Saldo</DialogTitle>
-          <DialogDescription>Insira o novo valor do saldo.</DialogDescription>
-
-          <Input
-            type="number"
-            step="0.01"
-            value={newBalance}
-            onChange={(e) => setNewBalance(parseFloat(e.target.value))}
-          />
-
-          <Button onClick={updateBalance}>Salvar</Button>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Adicionar/Editar Despesa */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogTitle>{isEditing ? "Editar Despesa" : "Adicionar Despesa"}</DialogTitle>
-          <DialogDescription>Insira os detalhes da despesa abaixo.</DialogDescription>
-
-          <Input
-            placeholder="Nome"
-            value={newExpense.name}
-            onChange={(e) => setNewExpense({ ...newExpense, name: e.target.value })}
-          />
-
-          <Input
-            type="number"
-            step="0.01"
-            placeholder="Valor"
-            value={isNaN(newExpense.amount) ? "" : newExpense.amount} // Evita passar NaN
-            onChange={(e) => {
-              const value = parseFloat(e.target.value);
-              setNewExpense({ ...newExpense, amount: isNaN(value) ? 0 : value });
-            }}
-          />
-
-          <Input
-            type="date"
-            value={newExpense.date || ''}
-            onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
-          />
-
-          <Button onClick={isEditing ? updateExpense : addExpense}>
-            {isEditing ? "Atualizar" : "Salvar"}
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </div>
   );
 }
