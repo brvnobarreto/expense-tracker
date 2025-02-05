@@ -3,7 +3,7 @@ import { pgTable, serial, text, numeric, date, timestamp, varchar } from "drizzl
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  amount: varchar("amount", { length: 255 }).notNull(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
   date: varchar("date", { length: 255 }).notNull(),
   userId: varchar("userId", { length: 255 }).notNull(), // Verifique se esta coluna existe com esse nome
 });

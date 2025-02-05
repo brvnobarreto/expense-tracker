@@ -71,6 +71,13 @@
       "when": 1738712376393,
       "tag": "0009_wise_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1738794037522,
+      "tag": "0010_public_shiva",
+      "breakpoints": true
     }
   ]
 }

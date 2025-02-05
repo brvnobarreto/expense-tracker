@@ -288,7 +288,7 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md mt-14">
+      <div className="flex justify-between mt-4 p-4 bg-gray-100 rounded-lg shadow-md">
         <div>
           <p>Saldo:</p>
           <span className={balance < 0 ? "text-red-500 font-bold" : "font-bold"}>
@@ -298,7 +298,7 @@ export default function Home() {
             <Pencil className="w-5 h-5 text-gray-600 hover:text-gray-800" />
           </Button>
         </div>
-        <div>
+        <div className="mt-2">
           <p>Custo total:</p>
           <span className="font-bold">
               R$ {totalCost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
