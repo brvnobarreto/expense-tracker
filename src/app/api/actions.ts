@@ -1,5 +1,4 @@
 'use server'
-export const runtime = "edge";
 import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { auth } from '@clerk/nextjs/server'
