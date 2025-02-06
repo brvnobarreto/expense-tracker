@@ -1,3 +1,4 @@
+export const runtime = "edge";
 import { pgTable, serial, text, numeric, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const expenses = pgTable("expenses", {
