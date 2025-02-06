@@ -10,7 +10,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { RedirectToSignIn, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { toast, useToast } from "@/hooks/use-toast";  
+//import { useToast } from "@/hooks/use-toast";  
 
 type Expense = {
     id?: number;
@@ -59,10 +59,10 @@ export default function Home() {
   }, [user, routerReady, router]);
   
 
-  const handleSignOut = () => {
-    // Redireciona para a página de sign-in
-    router.replace("/sign-in");
-  };
+  // const handleSignOut = () => {
+  //   // Redireciona para a página de sign-in
+  //   router.replace("/sign-in");
+  // };
 
   const fetchData = async () => {
     setLoading(true);
@@ -132,7 +132,7 @@ export default function Home() {
     }
 };
 
-  const { toast } = useToast();
+  // const { toast } = useToast();
 
   const addExpense = async () => {  
     setIsSavingExpense(true);
@@ -158,7 +158,7 @@ export default function Home() {
   const updateExpense = async () => {
     setIsSavingExpense(true);
     try {
-      const { id, ...expenseData } = newExpense;
+      //const { id, ...expenseData } = newExpense;
   
       // Garante que a data seja tratada como horário local
       const date = newExpense.date ? new Date(newExpense.date + 'T00:00:00') : new Date();

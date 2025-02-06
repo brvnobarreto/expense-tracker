@@ -3,7 +3,6 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import { auth } from '@clerk/nextjs/server'
 import * as schema from "../../db/schema";
-import { eq } from 'drizzle-orm'
 
 const _sql = neon(process.env.DATABASE_URL!);
 const db = drizzle(_sql, { schema });
@@ -40,7 +39,7 @@ export async function deleteUserMessage() {
     }
 
     // Tentando excluir a mensagem do usuário
-    const result = await db.delete(schema.UserMessages).where(eq(schema.UserMessages.user_id, userId));
+    //const result = await db.delete(schema.UserMessages).where(eq(schema.UserMessages.user_id, userId));
 
     // O Drizzle não retorna um "count", mas o fato de não lançar erro significa que a operação foi bem-sucedida
     return { message: 'Message deleted successfully' };

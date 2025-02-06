@@ -75,7 +75,7 @@ export async function PUT(req: Request) {
   }
 }
 
-export async function DELETE(req: Request) {
+export async function DELETE() {
   try {
     const auth = await getAuth();
     const userId = auth.userId;

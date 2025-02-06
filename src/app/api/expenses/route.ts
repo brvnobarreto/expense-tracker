@@ -2,8 +2,6 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 import * as schema from "../../../db/schema";
 import { NextResponse } from "next/server";
-import { sql } from "drizzle-orm";
-import { isValid, parseISO, format } from "date-fns";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 
@@ -161,13 +159,13 @@ export async function DELETE(req: Request) {
     }
 }
 
-function isValidDate(date: string | undefined): boolean {
-    if (!date) return true;
-    try {
-        const parsedDate = parseISO(date);
-        return isValid(parsedDate);
-    } catch (error) {
-        console.error("Erro ao verificar data:", error);
-        return false;
-    }
-}
+// function isValidDate(date: string | undefined): boolean {
+//     if (!date) return true;
+//     try {
+//         const parsedDate = parseISO(date);
+//         return isValid(parsedDate);
+//     } catch (error) {
+//         console.error("Erro ao verificar data:", error);
+//         return false;
+//     }
+// }
