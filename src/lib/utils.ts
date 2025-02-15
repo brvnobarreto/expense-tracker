@@ -1,3 +1,4 @@
+// export const runtime = "edge";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 

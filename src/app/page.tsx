@@ -1,4 +1,5 @@
 "use client";
+export const runtime = "edge";
 
 import { useEffect, useState } from "react";
 import axios from 'axios';
@@ -271,7 +272,6 @@ export default function Home() {
     }
   };
 
-  
   return (
     <div className="p-6 max-w-xl mx-auto mt-11">
       <header className="bg-teal-500 text-white p-4 shadow-md text-center fixed top-0 right-0 left-0">
